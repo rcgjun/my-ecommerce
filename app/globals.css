@@ -8,22 +8,9 @@
   --background-end-rgb: 255, 255, 255;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --foreground-rgb: 255, 255, 255;
-    --background-start-rgb: 0, 0, 0;
-    --background-end-rgb: 0, 0, 0;
-  }
-}
-
 body {
   color: rgb(var(--foreground-rgb));
-  background: linear-gradient(
-      to bottom,
-      transparent,
-      rgb(var(--background-end-rgb))
-    )
-    rgb(var(--background-start-rgb));
+  background: rgb(var(--background-start-rgb));
 }
 
 @layer utilities {
@@ -49,4 +36,63 @@ body {
 
 ::-webkit-scrollbar-thumb:hover {
   background: #555;
+}
+
+/* FIX: Input and Textarea Visibility */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="tel"],
+input[type="number"],
+input[type="url"],
+textarea,
+select {
+  color: #1f2937 !important;
+  background-color: #ffffff !important;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #9ca3af !important;
+  opacity: 1;
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  color: #111827 !important;
+  outline: 2px solid #3b82f6 !important;
+  outline-offset: 2px;
+}
+
+/* Ensure labels are dark and visible */
+label {
+  color: #374151 !important;
+  font-weight: 500;
+}
+
+/* Modal inputs specifically */
+.modal input,
+.modal textarea {
+  color: #111827 !important;
+  background-color: white !important;
+}
+
+/* Admin dashboard inputs */
+form input,
+form textarea,
+form select {
+  color: #111827 !important;
+  background-color: white !important;
+  border: 1px solid #d1d5db;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+}
+
+form input:focus,
+form textarea:focus,
+form select:focus {
+  border-color: #3b82f6;
+  ring: 2px;
+  ring-color: #3b82f6;
 }
