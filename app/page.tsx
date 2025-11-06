@@ -1,100 +1,140 @@
-import Image from "next/image";
+'use client';
+
+import { useEffect, useState } from 'react';
+import { getProducts, Product } from '@/lib/supabase';
+import Link from 'next/link';
+import { ShoppingBag, ArrowRight } from 'lucide-react';
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="https://nextjs.org/icons/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="https://nextjs.org/icons/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  useEffect(() => {
+    loadProducts();
+  }, []);
+
+  const loadProducts = async () => {
+    try {
+      const data = await getProducts();
+      setProducts(data);
+    } catch (error) {
+      console.error('Error loading products:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Hero Section */}
+      <div className="relative h-96 bg-gradient-to-r from-blue-600 to-indigo-700 overflow-hidden">
+        <div className="absolute inset-0 bg-black/20"></div>
+        <div className="relative h-full flex items-center justify-center text-center px-4">
+          <div className="max-w-3xl">
+            <h1 className="text-5xl md:text-6xl font-bold text-white mb-4">
+              Welcome to Our Store
+            </h1>
+            <p className="text-xl text-white/90 mb-8">
+              Discover amazing products at unbeatable prices
+            </p>
+            <a
+              href="#products"
+              className="inline-flex items-center gap-2 bg-white text-blue-600 px-8 py-3 rounded-lg font-semibold hover:bg-blue-50 transition"
+            >
+              Shop Now <ArrowRight size={20} />
+            </a>
+          </div>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
+      </div>
+
+      {/* Products Section */}
+      <div id="products" className="max-w-7xl mx-auto px-4 py-16">
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h2 className="text-3xl font-bold text-gray-900">Our Products</h2>
+            <p className="text-gray-600 mt-2">Browse our collection of quality products</p>
+          </div>
+          <Link
+            href="/admin/login"
+            className="text-sm text-blue-600 hover:text-blue-700 underline"
+          >
+            Admin Login
+          </Link>
+        </div>
+
+        {loading ? (
+          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            {[...Array(8)].map((_, i) => (
+              <div key={i} className="bg-white rounded-lg overflow-hidden shadow animate-pulse">
+                <div className="h-64 bg-gray-200"></div>
+                <div className="p-4">
+                  <div className="h-4 bg-gray-200 rounded mb-2"></div>
+                  <div className="h-3 bg-gray-200 rounded w-2/3"></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : products.length === 0 ? (
+          <div className="text-center py-16">
+            <ShoppingBag size={64} className="mx-auto text-gray-300 mb-4" />
+            <h3 className="text-xl font-semibold text-gray-700 mb-2">No products yet</h3>
+            <p className="text-gray-500">Check back soon for amazing products!</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            {products.map((product) => (
+              <Link
+                key={product.id}
+                href={`/products/${product.id}`}
+                className="group bg-white rounded-lg overflow-hidden shadow hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1"
+              >
+                <div className="relative h-64 overflow-hidden bg-gray-100">
+                  <img
+                    src={product.image_url}
+                    alt={product.title}
+                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                  />
+                  <div className="absolute top-3 right-3">
+                    <span className="bg-blue-600 text-white px-3 py-1 rounded-full text-sm font-semibold">
+                      ${product.price}
+                    </span>
+                  </div>
+                </div>
+                <div className="p-4">
+                  <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2 group-hover:text-blue-600 transition">
+                    {product.title}
+                  </h3>
+                  <p className="text-gray-600 text-sm line-clamp-2 mb-3">
+                    {product.description}
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-gray-500">Colors:</span>
+                    <div className="flex gap-1">
+                      {product.colors.slice(0, 4).map((color, idx) => (
+                        <div
+                          key={idx}
+                          className="w-4 h-4 rounded-full border border-gray-300"
+                          style={{ backgroundColor: color }}
+                          title={color}
+                        ></div>
+                      ))}
+                      {product.colors.length > 4 && (
+                        <span className="text-xs text-gray-500">+{product.colors.length - 4}</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Footer */}
+      <footer className="bg-gray-900 text-white py-8">
+        <div className="max-w-7xl mx-auto px-4 text-center">
+          <p className="text-gray-400">© 2025 Your Store. All rights reserved.</p>
+        </div>
       </footer>
     </div>
   );
