@@ -179,3 +179,32 @@ export const getSalesAnalytics = async () => {
     chartData,
   };
 };
+
+// Settings helpers
+export const getCoverPhotoUrl = async () => {
+  const { data, error } = await supabase
+    .from('settings')
+    .select('value')
+    .eq('key', 'cover_photo_url')
+    .single();
+  
+  if (error) return 'default';
+  return data?.value || 'default';
+};
+
+export const updateCoverPhotoUrl = async (url: string) => {
+  const { data, error } = await supabase
+    .from('settings')
+    .upsert({ 
+      key: 'cover_photo_url', 
+      value: url,
+      updated_at: new Date().toISOString()
+    }, {
+      onConflict: 'key'
+    })
+    .select()
+    .single();
+  
+  if (error) throw error;
+  return data;
+};

@@ -1,17 +1,36 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { getProducts, Product } from '@/lib/supabase';
+import { getProducts, Product, getCoverPhotoUrl } from '@/lib/supabase';
 import Link from 'next/link';
 import { ShoppingBag, ArrowRight } from 'lucide-react';
+import Image from 'next/image';
 
 export default function Home() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [coverImage, setCoverImage] = useState<string>('default');
+  const [imageError, setImageError] = useState(false);
 
   useEffect(() => {
     loadProducts();
+    loadCoverImage();
   }, []);
+
+  const loadCoverImage = async () => {
+    try {
+      const url = await getCoverPhotoUrl();
+      if (url && url !== 'default') {
+        setCoverImage(url);
+        setImageError(false);
+      } else {
+        setImageError(true);
+      }
+    } catch (error) {
+      console.error('Error loading cover image:', error);
+      setImageError(true);
+    }
+  };
 
   const loadProducts = async () => {
     try {
@@ -26,20 +45,39 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Hero Section */}
-      <div className="relative h-96 bg-gradient-to-r from-blue-600 to-indigo-700 overflow-hidden">
-        <div className="absolute inset-0 bg-black/20"></div>
-        <div className="relative h-full flex items-center justify-center text-center px-4">
+      {/* Hero Section with Dynamic Cover */}
+      <div className="relative h-96 overflow-hidden">
+        {!imageError && coverImage !== 'default' ? (
+          // Custom cover image from URL
+          <>
+            <img
+              src={coverImage}
+              alt="Store Cover"
+              className="w-full h-full object-cover"
+              onError={() => setImageError(true)}
+            />
+            <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/40 to-black/50"></div>
+          </>
+        ) : (
+          // Default gradient background if no cover image
+          <>
+            <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-indigo-700"></div>
+            <div className="absolute inset-0 bg-black/10"></div>
+          </>
+        )}
+        
+        {/* Hero Content */}
+        <div className="absolute inset-0 flex items-center justify-center text-center px-4 z-10">
           <div className="max-w-3xl">
-            <h1 className="text-5xl md:text-6xl font-bold text-white mb-4">
-              Welcome to Our Store
+            <h1 className="text-5xl md:text-6xl font-bold text-white mb-4 drop-shadow-2xl">
+              Welcome to Random Creative Finds
             </h1>
-            <p className="text-xl text-white/90 mb-8">
-              Discover amazing products at unbeatable prices
+            <p className="text-xl text-white mb-8 drop-shadow-xl">
+              Where rare finds meet unbeatable price
             </p>
             <a
               href="#products"
-              className="inline-flex items-center gap-2 bg-white text-blue-600 px-8 py-3 rounded-lg font-semibold hover:bg-blue-50 transition"
+              className="inline-flex items-center gap-2 bg-white text-blue-600 px-8 py-4 rounded-lg font-semibold hover:bg-blue-50 transition-all duration-300 shadow-2xl hover:shadow-xl transform hover:scale-105 hover:-translate-y-1"
             >
               Shop Now <ArrowRight size={20} />
             </a>

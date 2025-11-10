@@ -12,6 +12,8 @@ import {
   deleteProduct,
   updateOrderStatus,
   getSalesAnalytics,
+  getCoverPhotoUrl,
+  updateCoverPhotoUrl,
   Product,
   Order,
 } from '@/lib/supabase';
@@ -36,6 +38,8 @@ import {
   Trash2,
   DollarSign,
   CheckCircle,
+  Image as ImageIcon,
+  Upload,
 } from 'lucide-react';
 
 export default function AdminDashboard() {
@@ -45,6 +49,8 @@ export default function AdminDashboard() {
   const [products, setProducts] = useState<Product[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [analytics, setAnalytics] = useState<any>(null);
+  const [coverPhotoUrl, setCoverPhotoUrl] = useState('');
+  const [uploadingCover, setUploadingCover] = useState(false);
 
   // Product form state
   const [productForm, setProductForm] = useState({
@@ -92,6 +98,10 @@ export default function AdminDashboard() {
       if (activeTab === 'analytics') {
         const analyticsData = await getSalesAnalytics();
         setAnalytics(analyticsData);
+      }
+      if (activeTab === 'cover-photo') {
+        const coverUrl = await getCoverPhotoUrl();
+        setCoverPhotoUrl(coverUrl === 'default' ? '' : coverUrl);
       }
     } catch (error) {
       console.error('Error loading data:', error);
@@ -159,6 +169,41 @@ export default function AdminDashboard() {
       loadData();
     } catch (error) {
       console.error('Error updating order:', error);
+    }
+  };
+
+  const handleCoverPhotoSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!coverPhotoUrl.trim()) {
+      alert('Please enter a valid image URL');
+      return;
+    }
+
+    setUploadingCover(true);
+    try {
+      await updateCoverPhotoUrl(coverPhotoUrl);
+      alert('Cover photo updated successfully! Visit homepage to see changes.');
+    } catch (error) {
+      console.error('Error updating cover photo:', error);
+      alert('Error updating cover photo');
+    } finally {
+      setUploadingCover(false);
+    }
+  };
+
+  const handleRemoveCoverPhoto = async () => {
+    if (confirm('Remove cover photo and use default gradient?')) {
+      setUploadingCover(true);
+      try {
+        await updateCoverPhotoUrl('default');
+        setCoverPhotoUrl('');
+        alert('Cover photo removed! Homepage will show default gradient.');
+      } catch (error) {
+        console.error('Error removing cover photo:', error);
+        alert('Error removing cover photo');
+      } finally {
+        setUploadingCover(false);
+      }
     }
   };
 
@@ -230,6 +275,7 @@ export default function AdminDashboard() {
             <div className="flex overflow-x-auto">
               {[
                 { id: 'analytics', label: 'Analytics', icon: TrendingUp },
+                { id: 'cover-photo', label: 'Cover Photo', icon: ImageIcon },
                 { id: 'add-product', label: 'Add Product', icon: Plus },
                 { id: 'products', label: 'Inventory', icon: Package },
                 { id: 'orders', label: 'Orders', icon: ShoppingCart },
@@ -266,6 +312,117 @@ export default function AdminDashboard() {
                         <Line type="monotone" dataKey="revenue" stroke="#3B82F6" strokeWidth={2} />
                       </LineChart>
                     </ResponsiveContainer>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Cover Photo Tab */}
+            {activeTab === 'cover-photo' && (
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                  <ImageIcon className="text-blue-600" />
+                  Manage Cover Photo
+                </h3>
+                
+                <div className="max-w-2xl space-y-6">
+                  {/* Current Cover Preview */}
+                  <div className="border-2 border-gray-200 rounded-lg overflow-hidden">
+                    <div className="bg-gray-50 px-4 py-2 border-b border-gray-200">
+                      <p className="text-sm font-medium text-gray-700">Current Cover Photo</p>
+                    </div>
+                    <div className="relative h-64 bg-gray-100">
+                      {coverPhotoUrl ? (
+                        <img
+                          src={coverPhotoUrl}
+                          alt="Cover Preview"
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            e.currentTarget.src = '';
+                            e.currentTarget.alt = 'Failed to load image';
+                          }}
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-gradient-to-r from-blue-600 to-indigo-700 flex items-center justify-center">
+                          <div className="text-center text-white">
+                            <ImageIcon size={48} className="mx-auto mb-2 opacity-50" />
+                            <p className="text-sm">Default Gradient Background</p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Upload Form */}
+                  <form onSubmit={handleCoverPhotoSubmit} className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Cover Photo URL
+                      </label>
+                      <input
+                        type="url"
+                        value={coverPhotoUrl}
+                        onChange={(e) => setCoverPhotoUrl(e.target.value)}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                        placeholder="https://example.com/your-cover-image.jpg"
+                      />
+                      <p className="mt-2 text-sm text-gray-500">
+                        Enter the URL of your cover image. Recommended size: 1920x600px
+                      </p>
+                    </div>
+
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                      <h4 className="font-semibold text-blue-900 mb-2">📸 Where to get image URLs:</h4>
+                      <ul className="text-sm text-blue-800 space-y-1">
+                        <li>• Upload to <a href="https://imgur.com" target="_blank" className="underline">Imgur.com</a> (free)</li>
+                        <li>• Use <a href="https://unsplash.com" target="_blank" className="underline">Unsplash.com</a> (free stock photos)</li>
+                        <li>• Upload to your hosting and use full URL</li>
+                        <li>• Use <a href="https://imagekit.io" target="_blank" className="underline">ImageKit.io</a> or <a href="https://cloudinary.com" target="_blank" className="underline">Cloudinary.com</a></li>
+                      </ul>
+                    </div>
+
+                    <div className="flex gap-3">
+                      <button
+                        type="submit"
+                        disabled={uploadingCover}
+                        className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {uploadingCover ? (
+                          <>
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                            Updating...
+                          </>
+                        ) : (
+                          <>
+                            <Upload size={20} />
+                            Update Cover Photo
+                          </>
+                        )}
+                      </button>
+                      
+                      {coverPhotoUrl && (
+                        <button
+                          type="button"
+                          onClick={handleRemoveCoverPhoto}
+                          disabled={uploadingCover}
+                          className="px-6 py-3 border-2 border-red-500 text-red-600 rounded-lg hover:bg-red-50 transition disabled:opacity-50"
+                        >
+                          Remove Cover
+                        </button>
+                      )}
+                    </div>
+                  </form>
+
+                  {/* Tips */}
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                    <h4 className="font-semibold text-yellow-900 mb-2">💡 Tips for Best Results:</h4>
+                    <ul className="text-sm text-yellow-800 space-y-1">
+                      <li>• Use high-quality images (1920x600px recommended)</li>
+                      <li>• Ensure text will be readable on the image (avoid busy backgrounds)</li>
+                      <li>• Keep file size under 500KB for fast loading</li>
+                      <li>• Test on mobile and desktop after updating</li>
+                      <li>• Image will have a dark overlay for better text readability</li>
+                    </ul>
                   </div>
                 </div>
               </div>
