@@ -70,10 +70,10 @@ export default function Home() {
         <div className="absolute inset-0 flex items-center justify-center text-center px-4 z-10">
           <div className="max-w-3xl">
             <h1 className="text-5xl md:text-6xl font-bold text-white mb-4 drop-shadow-2xl">
-              Welcome to Random Creative Finds
+              Welcome to Our Store
             </h1>
             <p className="text-xl text-white mb-8 drop-shadow-xl">
-              Where rare finds meet unbeatable price
+              Discover amazing products at unbeatable prices
             </p>
             <a
               href="#products"
@@ -128,7 +128,7 @@ export default function Home() {
               >
                 <div className="relative h-64 overflow-hidden bg-gray-100">
                   <img
-                    src={product.image_url}
+                    src={product.variations[0]?.images[0] || 'https://via.placeholder.com/400'}
                     alt={product.title}
                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
                   />
@@ -148,16 +148,16 @@ export default function Home() {
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-gray-500">Colors:</span>
                     <div className="flex gap-1">
-                      {product.colors.slice(0, 4).map((color, idx) => (
+                      {product.variations.slice(0, 4).map((variation, idx) => (
                         <div
                           key={idx}
                           className="w-4 h-4 rounded-full border border-gray-300"
-                          style={{ backgroundColor: color }}
-                          title={color}
+                          style={{ backgroundColor: variation.hex }}
+                          title={variation.name}
                         ></div>
                       ))}
-                      {product.colors.length > 4 && (
-                        <span className="text-xs text-gray-500">+{product.colors.length - 4}</span>
+                      {product.variations.length > 4 && (
+                        <span className="text-xs text-gray-500">+{product.variations.length - 4}</span>
                       )}
                     </div>
                   </div>

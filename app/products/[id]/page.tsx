@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { getProductById, createOrder, Product } from '@/lib/supabase';
-import { ArrowLeft, ShoppingCart, Check } from 'lucide-react';
+import { ArrowLeft, ShoppingCart, Check, ChevronLeft, ChevronRight } from 'lucide-react';
 import Link from 'next/link';
 
 export default function ProductPage() {
@@ -12,7 +12,8 @@ export default function ProductPage() {
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
-  const [selectedColor, setSelectedColor] = useState('');
+  const [selectedColorIndex, setSelectedColorIndex] = useState(0);
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [orderForm, setOrderForm] = useState({
     name: '',
     phone: '',
@@ -30,7 +31,10 @@ export default function ProductPage() {
     try {
       const data = await getProductById(id);
       setProduct(data);
-      setSelectedColor(data.colors[0] || '');
+      // Set default color to first variation
+      if (data.variations && data.variations.length > 0) {
+        setSelectedColorIndex(0);
+      }
     } catch (error) {
       console.error('Error loading product:', error);
     } finally {
@@ -38,9 +42,28 @@ export default function ProductPage() {
     }
   };
 
+  const handleColorChange = (index: number) => {
+    setSelectedColorIndex(index);
+    setSelectedImageIndex(0); // Reset to first image of new color
+  };
+
+  const handleNextImage = () => {
+    if (!product || !product.variations[selectedColorIndex]) return;
+    const totalImages = product.variations[selectedColorIndex].images.length;
+    setSelectedImageIndex((prev) => (prev + 1) % totalImages);
+  };
+
+  const handlePrevImage = () => {
+    if (!product || !product.variations[selectedColorIndex]) return;
+    const totalImages = product.variations[selectedColorIndex].images.length;
+    setSelectedImageIndex((prev) => (prev - 1 + totalImages) % totalImages);
+  };
+
   const handleSubmitOrder = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!product || !selectedColor) return;
+    if (!product || !product.variations[selectedColorIndex]) return;
+
+    const selectedColor = product.variations[selectedColorIndex];
 
     setSubmitting(true);
     try {
@@ -49,7 +72,7 @@ export default function ProductPage() {
         name: orderForm.name,
         phone: orderForm.phone,
         address: orderForm.address,
-        color: selectedColor,
+        color: selectedColor.name,
         status: 'pending',
         total_price: product.price,
       });
@@ -71,7 +94,7 @@ export default function ProductPage() {
     );
   }
 
-  if (!product) {
+  if (!product || !product.variations || product.variations.length === 0) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -83,6 +106,9 @@ export default function ProductPage() {
       </div>
     );
   }
+
+  const currentColor = product.variations[selectedColorIndex];
+  const currentImage = currentColor.images[selectedImageIndex];
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -97,13 +123,62 @@ export default function ProductPage() {
 
         <div className="bg-white rounded-lg shadow-lg overflow-hidden">
           <div className="grid md:grid-cols-2 gap-8 p-8">
-            {/* Product Image */}
-            <div className="relative h-96 md:h-full bg-gray-100 rounded-lg overflow-hidden">
-              <img
-                src={product.image_url}
-                alt={product.title}
-                className="w-full h-full object-cover"
-              />
+            {/* Product Images */}
+            <div className="space-y-4">
+              {/* Main Image */}
+              <div className="relative h-96 md:h-full bg-gray-100 rounded-lg overflow-hidden group">
+                <img
+                  src={currentImage}
+                  alt={`${product.title} - ${currentColor.name}`}
+                  className="w-full h-full object-cover"
+                />
+                
+                {/* Navigation Arrows (if multiple images) */}
+                {currentColor.images.length > 1 && (
+                  <>
+                    <button
+                      onClick={handlePrevImage}
+                      className="absolute left-2 top-1/2 -translate-y-1/2 p-2 bg-white/80 rounded-full opacity-0 group-hover:opacity-100 transition hover:bg-white"
+                    >
+                      <ChevronLeft size={24} />
+                    </button>
+                    <button
+                      onClick={handleNextImage}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-white/80 rounded-full opacity-0 group-hover:opacity-100 transition hover:bg-white"
+                    >
+                      <ChevronRight size={24} />
+                    </button>
+                    
+                    {/* Image Counter */}
+                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 px-3 py-1 bg-black/60 text-white text-sm rounded-full">
+                      {selectedImageIndex + 1} / {currentColor.images.length}
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {/* Thumbnail Images */}
+              {currentColor.images.length > 1 && (
+                <div className="grid grid-cols-4 gap-2">
+                  {currentColor.images.map((img, index) => (
+                    <button
+                      key={index}
+                      onClick={() => setSelectedImageIndex(index)}
+                      className={`relative h-20 rounded-lg overflow-hidden border-2 transition ${
+                        selectedImageIndex === index
+                          ? 'border-blue-600 ring-2 ring-blue-200'
+                          : 'border-gray-300 hover:border-gray-400'
+                      }`}
+                    >
+                      <img
+                        src={img}
+                        alt={`Thumbnail ${index + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Product Info */}
@@ -117,26 +192,36 @@ export default function ProductPage() {
               </div>
 
               <div className="mb-8">
-                <h3 className="font-semibold text-gray-900 mb-3">Available Colors</h3>
+                <h3 className="font-semibold text-gray-900 mb-3">
+                  Available Colors - {currentColor.name}
+                </h3>
                 <div className="flex flex-wrap gap-3">
-                  {product.colors.map((color, idx) => (
+                  {product.variations.map((variation, idx) => (
                     <button
                       key={idx}
-                      onClick={() => setSelectedColor(color)}
-                      className={`relative w-12 h-12 rounded-full border-2 transition ${
-                        selectedColor === color
-                          ? 'border-blue-600 ring-2 ring-blue-200'
-                          : 'border-gray-300 hover:border-gray-400'
-                      }`}
-                      style={{ backgroundColor: color }}
-                      title={color}
+                      onClick={() => handleColorChange(idx)}
+                      className={`relative group`}
                     >
-                      {selectedColor === color && (
-                        <Check
-                          className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-white"
-                          size={20}
-                        />
-                      )}
+                      <div
+                        className={`w-12 h-12 rounded-full border-2 transition ${
+                          selectedColorIndex === idx
+                            ? 'border-blue-600 ring-2 ring-blue-200 scale-110'
+                            : 'border-gray-300 hover:border-gray-400'
+                        }`}
+                        style={{ backgroundColor: variation.hex }}
+                        title={variation.name}
+                      >
+                        {selectedColorIndex === idx && (
+                          <Check
+                            className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-white drop-shadow-lg"
+                            size={20}
+                            style={{ filter: 'drop-shadow(0 0 2px rgba(0,0,0,0.8))' }}
+                          />
+                        )}
+                      </div>
+                      <span className="absolute -bottom-6 left-1/2 -translate-x-1/2 text-xs text-gray-600 whitespace-nowrap opacity-0 group-hover:opacity-100 transition">
+                        {variation.name}
+                      </span>
                     </button>
                   ))}
                 </div>
@@ -210,9 +295,9 @@ export default function ProductPage() {
                 <div className="flex items-center gap-3">
                   <div
                     className="w-8 h-8 rounded-full border-2 border-gray-300"
-                    style={{ backgroundColor: selectedColor }}
+                    style={{ backgroundColor: currentColor.hex }}
                   ></div>
-                  <span className="text-gray-700">{selectedColor}</span>
+                  <span className="text-gray-700">{currentColor.name}</span>
                 </div>
               </div>
 

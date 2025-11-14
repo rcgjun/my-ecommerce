@@ -2,31 +2,28 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import AdminProductForm from '@/components/AdminProductForm';
 import {
   getSession,
   signOut,
   getProducts,
   getOrders,
-  createProduct,
-  updateProduct,
   deleteProduct,
   updateOrderStatus,
   getSalesAnalytics,
   getCoverPhotoUrl,
   updateCoverPhotoUrl,
   Product,
-  Order,
+  OrderWithProduct,
 } from '@/lib/supabase';
 import {
-  BarChart,
-  Bar,
+  LineChart,
+  Line,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  LineChart,
-  Line,
 } from 'recharts';
 import {
   Plus,
@@ -34,10 +31,8 @@ import {
   ShoppingCart,
   TrendingUp,
   LogOut,
-  Edit,
   Trash2,
   DollarSign,
-  CheckCircle,
   Image as ImageIcon,
   Upload,
 } from 'lucide-react';
@@ -47,20 +42,10 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('analytics');
   const [products, setProducts] = useState<Product[]>([]);
-  const [orders, setOrders] = useState<Order[]>([]);
+  const [orders, setOrders] = useState<OrderWithProduct[]>([]);
   const [analytics, setAnalytics] = useState<any>(null);
   const [coverPhotoUrl, setCoverPhotoUrl] = useState('');
   const [uploadingCover, setUploadingCover] = useState(false);
-
-  // Product form state
-  const [productForm, setProductForm] = useState({
-    title: '',
-    description: '',
-    price: '',
-    image_url: '',
-    colors: '',
-  });
-  const [editingProduct, setEditingProduct] = useState<string | null>(null);
 
   useEffect(() => {
     checkAuth();
@@ -88,56 +73,37 @@ export default function AdminDashboard() {
   const loadData = async () => {
     try {
       if (activeTab === 'products' || activeTab === 'add-product') {
+        console.log('Loading products...');
         const productsData = await getProducts();
+        console.log('Products loaded:', productsData.length);
         setProducts(productsData);
       }
       if (activeTab === 'orders') {
+        console.log('Loading orders...');
         const ordersData = await getOrders();
-        setOrders(ordersData);
+        console.log('Orders loaded:', ordersData.length, ordersData);
+        setOrders(ordersData || []);
       }
       if (activeTab === 'analytics') {
+        console.log('Loading analytics...');
         const analyticsData = await getSalesAnalytics();
+        console.log('Analytics loaded:', analyticsData);
         setAnalytics(analyticsData);
       }
       if (activeTab === 'cover-photo') {
         const coverUrl = await getCoverPhotoUrl();
         setCoverPhotoUrl(coverUrl === 'default' ? '' : coverUrl);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error loading data:', error);
+      const errorMessage = error?.message || error?.toString() || 'Unknown error';
+      alert(`Error loading data: ${errorMessage}\n\nCheck browser console (F12) for details.`);
     }
   };
 
   const handleLogout = async () => {
     await signOut();
     router.push('/admin/login');
-  };
-
-  const handleProductSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      const productData = {
-        title: productForm.title,
-        description: productForm.description,
-        price: parseFloat(productForm.price),
-        image_url: productForm.image_url,
-        colors: productForm.colors.split(',').map(c => c.trim()),
-      };
-
-      if (editingProduct) {
-        await updateProduct(editingProduct, productData);
-      } else {
-        await createProduct(productData);
-      }
-
-      setProductForm({ title: '', description: '', price: '', image_url: '', colors: '' });
-      setEditingProduct(null);
-      loadData();
-      alert(editingProduct ? 'Product updated!' : 'Product added!');
-    } catch (error) {
-      console.error('Error saving product:', error);
-      alert('Error saving product');
-    }
   };
 
   const handleDeleteProduct = async (id: string) => {
@@ -151,24 +117,14 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleEditProduct = (product: Product) => {
-    setEditingProduct(product.id);
-    setProductForm({
-      title: product.title,
-      description: product.description,
-      price: product.price.toString(),
-      image_url: product.image_url,
-      colors: product.colors.join(', '),
-    });
-    setActiveTab('add-product');
-  };
-
-  const handleUpdateOrderStatus = async (orderId: string, status: Order['status']) => {
+  const handleUpdateOrderStatus = async (orderId: string, status: 'pending' | 'confirmed' | 'delivered' | 'returned') => {
     try {
       await updateOrderStatus(orderId, status);
-      loadData();
-    } catch (error) {
+      await loadData();
+      alert('Order status updated successfully!');
+    } catch (error: any) {
       console.error('Error updating order:', error);
+      alert('Error updating order: ' + (error?.message || 'Unknown error'));
     }
   };
 
@@ -428,97 +384,19 @@ export default function AdminDashboard() {
               </div>
             )}
 
-            {/* Add/Edit Product Tab */}
+            {/* Add Product Tab - NOW USING AdminProductForm */}
             {activeTab === 'add-product' && (
               <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                  {editingProduct ? 'Edit Product' : 'Add New Product'}
+                <h3 className="text-lg font-semibold text-gray-900 mb-6">
+                  Add New Product
                 </h3>
-                <form onSubmit={handleProductSubmit} className="space-y-4 max-w-2xl">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Product Title *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={productForm.title}
-                      onChange={(e) => setProductForm({ ...productForm, title: e.target.value })}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Description *
-                    </label>
-                    <textarea
-                      required
-                      value={productForm.description}
-                      onChange={(e) => setProductForm({ ...productForm, description: e.target.value })}
-                      rows={3}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Price ($) *
-                    </label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      required
-                      value={productForm.price}
-                      onChange={(e) => setProductForm({ ...productForm, price: e.target.value })}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Image URL *
-                    </label>
-                    <input
-                      type="url"
-                      required
-                      value={productForm.image_url}
-                      onChange={(e) => setProductForm({ ...productForm, image_url: e.target.value })}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                      placeholder="https://example.com/image.jpg"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Colors (comma-separated) *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={productForm.colors}
-                      onChange={(e) => setProductForm({ ...productForm, colors: e.target.value })}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                      placeholder="#FF0000, #00FF00, #0000FF"
-                    />
-                  </div>
-                  <div className="flex gap-3">
-                    <button
-                      type="submit"
-                      className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-                    >
-                      {editingProduct ? 'Update Product' : 'Add Product'}
-                    </button>
-                    {editingProduct && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setEditingProduct(null);
-                          setProductForm({ title: '', description: '', price: '', image_url: '', colors: '' });
-                        }}
-                        className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
-                      >
-                        Cancel
-                      </button>
-                    )}
-                  </div>
-                </form>
+                <AdminProductForm 
+                  onSuccess={() => {
+                    setActiveTab('products');
+                    loadData();
+                  }}
+                  onCancel={() => setActiveTab('products')}
+                />
               </div>
             )}
 
@@ -529,18 +407,26 @@ export default function AdminDashboard() {
                 <div className="grid gap-4">
                   {products.map((product) => (
                     <div key={product.id} className="flex items-center gap-4 p-4 border border-gray-200 rounded-lg">
-                      <img src={product.image_url} alt={product.title} className="w-20 h-20 object-cover rounded" />
+                      <img 
+                        src={product.variations?.[0]?.images?.[0] || 'https://via.placeholder.com/80'} 
+                        alt={product.title} 
+                        className="w-20 h-20 object-cover rounded" 
+                      />
                       <div className="flex-1">
                         <h4 className="font-semibold text-gray-900">{product.title}</h4>
                         <p className="text-sm text-gray-600">${product.price}</p>
+                        <div className="flex gap-1 mt-1">
+                          {product.variations?.map((variation, idx) => (
+                            <div
+                              key={idx}
+                              className="w-4 h-4 rounded-full border border-gray-300"
+                              style={{ backgroundColor: variation.hex }}
+                              title={variation.name}
+                            ></div>
+                          ))}
+                        </div>
                       </div>
                       <div className="flex gap-2">
-                        <button
-                          onClick={() => handleEditProduct(product)}
-                          className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition"
-                        >
-                          <Edit size={20} />
-                        </button>
                         <button
                           onClick={() => handleDeleteProduct(product.id)}
                           className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"
@@ -558,59 +444,71 @@ export default function AdminDashboard() {
             {activeTab === 'orders' && (
               <div>
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Order Management</h3>
-                <div className="space-y-4">
-                  {orders.map((order) => (
-                    <div key={order.id} className="border border-gray-200 rounded-lg p-4">
-                      <div className="flex items-start justify-between mb-3">
-                        <div>
-                          <h4 className="font-semibold text-gray-900">{order.name}</h4>
-                          <p className="text-sm text-gray-600">{order.phone}</p>
-                          <p className="text-sm text-gray-600">{order.address}</p>
+                
+                {orders.length === 0 ? (
+                  <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+                    <ShoppingCart size={48} className="mx-auto text-gray-400 mb-3" />
+                    <p className="text-gray-600 font-medium">No orders yet</p>
+                    <p className="text-sm text-gray-500 mt-1">Orders will appear here when customers place them</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {orders.map((order) => (
+                      <div key={order.id} className="border border-gray-200 rounded-lg p-4">
+                        <div className="flex items-start justify-between mb-3">
+                          <div>
+                            <h4 className="font-semibold text-gray-900">{order.name}</h4>
+                            <p className="text-sm text-gray-600">{order.phone}</p>
+                            <p className="text-sm text-gray-600">{order.address}</p>
+                          </div>
+                          <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                            order.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                            order.status === 'confirmed' ? 'bg-blue-100 text-blue-800' :
+                            order.status === 'delivered' ? 'bg-green-100 text-green-800' :
+                            'bg-red-100 text-red-800'
+                          }`}>
+                            {order.status}
+                          </span>
                         </div>
-                        <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                          order.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                          order.status === 'confirmed' ? 'bg-blue-100 text-blue-800' :
-                          order.status === 'delivered' ? 'bg-green-100 text-green-800' :
-                          'bg-red-100 text-red-800'
-                        }`}>
-                          {order.status}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-4 mb-3">
-                        <div className="text-sm text-gray-600">
-                          Color: <span className="font-medium">{order.color}</span>
+                        <div className="flex items-center gap-4 mb-3">
+                          <div className="text-sm text-gray-600">
+                            Color: <span className="font-medium">{order.color}</span>
+                          </div>
+                          <div className="text-sm text-gray-600">
+                            Total: <span className="font-bold text-green-600">${order.total_price}</span>
+                          </div>
+                          <div className="text-sm text-gray-500">
+                            {new Date(order.created_at).toLocaleDateString()}
+                          </div>
                         </div>
-                        <div className="text-sm text-gray-600">
-                          Total: <span className="font-bold text-green-600">${order.total_price}</span>
-                        </div>
-                      </div>
-                      <div className="flex gap-2">
-                        {order.status === 'pending' && (
+                        <div className="flex gap-2">
+                          {order.status === 'pending' && (
+                            <button
+                              onClick={() => handleUpdateOrderStatus(order.id, 'confirmed')}
+                              className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition"
+                            >
+                              Confirm
+                            </button>
+                          )}
+                          {order.status === 'confirmed' && (
+                            <button
+                              onClick={() => handleUpdateOrderStatus(order.id, 'delivered')}
+                              className="px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700 transition"
+                            >
+                              Mark Delivered
+                            </button>
+                          )}
                           <button
-                            onClick={() => handleUpdateOrderStatus(order.id, 'confirmed')}
-                            className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition"
+                            onClick={() => handleUpdateOrderStatus(order.id, 'returned')}
+                            className="px-3 py-1 bg-red-600 text-white text-sm rounded hover:bg-red-700 transition"
                           >
-                            Confirm
+                            Mark Returned
                           </button>
-                        )}
-                        {order.status === 'confirmed' && (
-                          <button
-                            onClick={() => handleUpdateOrderStatus(order.id, 'delivered')}
-                            className="px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700 transition"
-                          >
-                            Mark Delivered
-                          </button>
-                        )}
-                        <button
-                          onClick={() => handleUpdateOrderStatus(order.id, 'returned')}
-                          className="px-3 py-1 bg-red-600 text-white text-sm rounded hover:bg-red-700 transition"
-                        >
-                          Mark Returned
-                        </button>
+                        </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
           </div>
