@@ -308,15 +308,17 @@ export const getSalesAnalytics = async () => {
       throw new Error(`Failed to fetch analytics: ${error.message}`);
     }
     
+    // Revenue: Only count DELIVERED orders (not pending, not confirmed, not returned)
     const totalRevenue = (orders || [])
-      .filter(o => o.status !== 'returned')
+      .filter(o => o.status === 'delivered')
       .reduce((sum, order) => sum + (order.total_price || 0), 0);
     
+    // Total sold: Only count DELIVERED orders
     const totalSold = (orders || []).filter(o => o.status === 'delivered').length;
     
-    // Group by date for chart
+    // Group by date for chart (only delivered orders)
     const salesByDate = (orders || []).reduce((acc: any, order) => {
-      if (order.status === 'returned') return acc;
+      if (order.status !== 'delivered') return acc;
       
       const date = new Date(order.created_at).toLocaleDateString();
       if (!acc[date]) {

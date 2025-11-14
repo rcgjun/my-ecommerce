@@ -57,6 +57,13 @@ export default function AdminDashboard() {
     }
   }, [activeTab, loading]);
 
+  // Load orders count for stats on initial load
+  useEffect(() => {
+    if (!loading) {
+      loadOrdersCount();
+    }
+  }, [loading]);
+
   const checkAuth = async () => {
     try {
       const session = await getSession();
@@ -101,6 +108,16 @@ export default function AdminDashboard() {
     }
   };
 
+  // Load orders count separately for stats cards
+  const loadOrdersCount = async () => {
+    try {
+      const ordersData = await getOrders();
+      setOrders(ordersData || []);
+    } catch (error) {
+      console.error('Error loading orders count:', error);
+    }
+  };
+
   const handleLogout = async () => {
     await signOut();
     router.push('/admin/login');
@@ -120,7 +137,15 @@ export default function AdminDashboard() {
   const handleUpdateOrderStatus = async (orderId: string, status: 'pending' | 'confirmed' | 'delivered' | 'returned') => {
     try {
       await updateOrderStatus(orderId, status);
-      await loadData();
+      await loadData(); // Reload current tab data
+      await loadOrdersCount(); // Reload orders count
+      
+      // Reload analytics if on analytics tab or to update stats
+      if (activeTab === 'analytics' || analytics) {
+        const analyticsData = await getSalesAnalytics();
+        setAnalytics(analyticsData);
+      }
+      
       alert('Order status updated successfully!');
     } catch (error: any) {
       console.error('Error updating order:', error);
