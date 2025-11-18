@@ -87,17 +87,9 @@ export default function Home() {
 
       {/* Products Section */}
       <div id="products" className="max-w-7xl mx-auto px-4 py-16">
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h2 className="text-3xl font-bold text-gray-900">Our Products</h2>
-            <p className="text-gray-600 mt-2">Browse our collection of quality products</p>
-          </div>
-          <Link
-            href="/admin/login"
-            className="text-sm text-blue-600 hover:text-blue-700 underline"
-          >
-            Admin Login
-          </Link>
+        <div className="mb-8">
+          <h2 className="text-3xl font-bold text-gray-900">Our Products</h2>
+          <p className="text-gray-600 mt-2">Browse our collection of quality products</p>
         </div>
 
         {loading ? (
